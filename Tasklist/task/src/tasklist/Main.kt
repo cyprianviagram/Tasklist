@@ -13,11 +13,7 @@ class TaskList(private val taskList:MutableList<Task> = mutableListOf()){
             println("The task is blank")
         } else {
             taskList.add(Task())
-            taskList.last().task.add(input)
-            do {
-                input = readln().trim()
-                taskList.last().task.add(input)
-            } while (input != "".trim())
+            taskList.last().addTask(input)
             taskList.last().task.remove(taskList.last().task.last())
         }
     }
@@ -26,8 +22,6 @@ class TaskList(private val taskList:MutableList<Task> = mutableListOf()){
         if (taskList.isEmpty()) {
             println("No tasks have been input")
         } else {
-            /*for (i in tasks.indices) {
-                println("${i + 1} ".padEnd(3, ' ') + tasks[i])*/
             taskList.forEach {
                 print("${taskList.indexOf(it) + 1}".padEnd(3))
                 it.task.forEach { it2 ->
@@ -40,7 +34,13 @@ class TaskList(private val taskList:MutableList<Task> = mutableListOf()){
 }
 
 class Task(val task: MutableList<String> = mutableListOf()) {
-
+    fun addTask(firstInput: String) {
+        task.add(firstInput)
+        do {
+            var nextInput = readln().trim()
+            task.add(nextInput)
+        } while (nextInput != "".trim())
+    }
 }
 
 fun main() {
@@ -65,5 +65,3 @@ fun exit() {
     println("Tasklist exiting!")
     exitProcess(0)
 }
-
-
