@@ -4,40 +4,42 @@ import kotlin.system.exitProcess
 
 const val FIRST_INDEX = 0
 
-class TaskList {
-    private val tasks = mutableListOf<MutableList<String>>()
+class TaskList(private val taskList:MutableList<Task> = mutableListOf()){
 
     fun takeInputtedTask() {
         println("Input a new task (enter a blank line to end):")
         var input = readln().trim()
-        if (input == "" && tasks.isEmpty()) {
+        if (input == "" && taskList.isEmpty()) {
             println("The task is blank")
         } else {
-            tasks.add(mutableListOf())
-            tasks.last().add(input)
+            taskList.add(Task())
+            taskList.last().task.add(input)
             do {
                 input = readln().trim()
-                tasks.last().add(input)
+                taskList.last().task.add(input)
             } while (input != "".trim())
-            tasks.last().remove(tasks.last().last())
+            taskList.last().task.remove(taskList.last().task.last())
         }
     }
 
     fun printTasks() {
-        if (tasks.isEmpty()) {
+        if (taskList.isEmpty()) {
             println("No tasks have been input")
         } else {
             /*for (i in tasks.indices) {
                 println("${i + 1} ".padEnd(3, ' ') + tasks[i])*/
-            tasks.forEach {
-                print("${tasks.indexOf(it) + 1}".padEnd(3))
-                it.forEach { it2 ->
-                    if (FIRST_INDEX == it.indexOf(it2)) println(it2) else println(it2.padStart(it2.length + 3,' '))
+            taskList.forEach {
+                print("${taskList.indexOf(it) + 1}".padEnd(3))
+                it.task.forEach { it2 ->
+                    if (FIRST_INDEX == it.task.indexOf(it2)) println(it2) else println(it2.padStart(it2.length + 3,' '))
                 }
                 println()
             }
         }
     }
+}
+
+class Task(val task: MutableList<String> = mutableListOf()) {
 
 }
 
