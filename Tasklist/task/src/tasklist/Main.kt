@@ -8,7 +8,7 @@ class TaskList(private val taskList:MutableList<Task> = mutableListOf()){
 
     fun takeInputtedTask() {
         println("Input a new task (enter a blank line to end):")
-        var input = readln().trim()
+        val input = readln().trim()
         if (input == "" && taskList.isEmpty()) {
             println("The task is blank")
         } else {
@@ -37,7 +37,7 @@ class Task(val task: MutableList<String> = mutableListOf()) {
     fun addTask(firstInput: String) {
         task.add(firstInput)
         do {
-            var nextInput = readln().trim()
+            val nextInput = readln().trim()
             task.add(nextInput)
         } while (nextInput != "".trim())
     }
