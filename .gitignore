@@ -1,0 +1,5 @@
+# Project exclude paths
+/.gradle/
+/Tasklist/task/build/
+/Tasklist/task/out/
+/Tasklist/task/out/production/classes/
