@@ -3,26 +3,23 @@ package tasklist
 import kotlin.system.exitProcess
 import kotlinx.datetime.*
 
-const val FIRST_INDEX = 0
 const val NUMBER_OF_FIRST_ELEMENT = 1
-const val THREE_SPACES_PADDING = 3
-const val SIZE_OF_YEAR_FORMAT = 4
-const val SIZE_OF_MONTH_FORMAT = 2
-const val SIZE_OF_DAY_FORMAT = 2
+const val NUMBERS_PADDING = 3
+const val SIZE_OF_TASKS_FIELD = 44
 const val SIZE_OF_HOUR_FORMAT = 2
 const val SIZE_OF_MINUTE_FORMAT = 2
 
-enum class Priority(val tag: String) {
-    CRITICAL("C"),
-    HIGH("H"),
-    NORMAL("N"),
-    LOW("L")
+enum class Priority(val tag: String, val color: String) {
+    CRITICAL("C", "\u001B[101m \u001B[0m"),
+    HIGH("H", "\u001B[103m \u001B[0m"),
+    NORMAL("N", "\u001B[102m \u001B[0m"),
+    LOW("L", "\u001B[104m \u001B[0m")
 }
 
-enum class TaskStatus(val tag: String) {
-    IN_TIME("I"),
-    TODAY("T"),
-    OVERDUE("O")
+enum class TaskStatus(val tag: String, val color: String) {
+    IN_TIME("I", "\u001B[102m \u001B[0m"),
+    TODAY("T", "\u001B[103m \u001B[0m"),
+    OVERDUE("O", "\u001B[101m \u001B[0m")
 }
 
 class TaskList(private val taskList:MutableList<Task> = mutableListOf()) {
@@ -47,20 +44,58 @@ class TaskList(private val taskList:MutableList<Task> = mutableListOf()) {
         if (taskList.isEmpty()) {
             println("No tasks have been input")
         } else {
+            printHeaders()
             taskList.forEach {
-                val number = "${taskList.indexOf(it) + 1}".padEnd(THREE_SPACES_PADDING)
-                val date = "${it.date.year.toString().padStart(SIZE_OF_YEAR_FORMAT, '0')}-${
-                    it.date.monthNumber.toString().padStart(SIZE_OF_MONTH_FORMAT, '0')
-                }-${it.date.dayOfMonth.toString().padStart(SIZE_OF_DAY_FORMAT, '0')}"
-                val time = "${it.date.hour.toString().padStart(SIZE_OF_HOUR_FORMAT, '0')}:${it.date.minute.toString().padStart(SIZE_OF_MINUTE_FORMAT, '0')}"
-                val taskStatus = it.getTaskStatus()
-                println("$number$date $time ${it.priority.tag} $taskStatus")
-                it.task.forEach { it2 ->
-                    println(it2.padStart(it2.length + THREE_SPACES_PADDING, ' '))
+                val number = taskList.indexOf(it) + 1
+                val paddedNumber = "| ${number.toString().padEnd(NUMBERS_PADDING)}"
+                val date = "| ${it.date.date} "
+                val time = "| ${it.date.hour.toString().padStart(SIZE_OF_HOUR_FORMAT,'0')}:${it.date.minute.toString().padStart(
+                    SIZE_OF_MINUTE_FORMAT, '0')} "
+                val priorityTag = "| ${it.priority.color} "
+                val taskStatus = "| ${it.getTaskStatusColor()} "
+                val firstTaskList = it.task.first().chunked(SIZE_OF_TASKS_FIELD)
+                val firstTask = firstFormattedTask(firstTaskList)
+                print("$paddedNumber$date$time$priorityTag$taskStatus$firstTask")
+                it.task.forEach loop@{ it2 ->
+                    if (it.task.indexOf(it2) == 0) {
+                        return@loop
+                    } else {
+                        val nTaskList = it2.chunked(SIZE_OF_TASKS_FIELD)
+                        print(nextFormattedTask(nTaskList))
+                    }
                 }
-                println()
+                println("+----+------------+-------+---+---+--------------------------------------------+")
             }
         }
+    }
+
+    fun firstFormattedTask(list: List<String>): String {
+        if (list.size == 1)  {
+            return "|${list.first().padEnd(SIZE_OF_TASKS_FIELD, ' ')}|\n"
+        } else {
+            val firstLine = "|${list.first().padEnd(SIZE_OF_TASKS_FIELD, ' ')}|\n"
+            val nextLines = StringBuilder()
+            list.forEach loop@{
+                if (list.indexOf(it) == 0) return@loop
+                nextLines.append("|    |            |       |   |   |${it.padEnd(SIZE_OF_TASKS_FIELD, ' ')}|\n")
+            }
+            return "$firstLine$nextLines"
+        }
+    }
+
+    fun nextFormattedTask(list: List<String>): String {
+        val nextLines = StringBuilder()
+        list.forEach {
+            nextLines.append("|    |            |       |   |   |${it.padEnd(SIZE_OF_TASKS_FIELD, ' ')}|\n")
+        }
+        return "$nextLines"
+    }
+    fun printHeaders() {
+        println("""
+            +----+------------+-------+---+---+--------------------------------------------+
+            | N  |    Date    | Time  | P | D |                   Task                     |
+            +----+------------+-------+---+---+--------------------------------------------+
+        """.trimIndent())
     }
 
     fun deleteTask() {
@@ -90,12 +125,12 @@ class TaskList(private val taskList:MutableList<Task> = mutableListOf()) {
         do {
             println("Input the task number (1-${taskList.size}):")
             val input = try { readln().toInt() } catch (e: Exception) { 0 }
-            try {
+            result = try {
                 taskList[input - 1].editTaskProperty()
-                result = true
+                true
             } catch (e: Exception) {
                 println("Invalid task number")
-                result = false
+                false
             }
         } while (!result)
     }
@@ -103,7 +138,7 @@ class TaskList(private val taskList:MutableList<Task> = mutableListOf()) {
 
 class Task(val task: MutableList<String> = mutableListOf()) {
     var priority = Priority.NORMAL
-    var date = Clock.System.now().toLocalDateTime((TimeZone.of("UTC+0")))
+    var date = Clock.System.now().toLocalDateTime((TimeZone.of("UTC+2")))
 
     fun addTask(firstInput: String) {
         task.add(firstInput)
@@ -201,15 +236,15 @@ class Task(val task: MutableList<String> = mutableListOf()) {
         } while (input != "".trim())
     }
 
-    fun getTaskStatus(): String {
-        val currentDate = Clock.System.now().toLocalDateTime(TimeZone.of("UTC+0")).date
+    fun getTaskStatusColor(): String {
+        val currentDate = Clock.System.now().toLocalDateTime(TimeZone.of("UTC+2")).date
         val numberOfDays = currentDate.daysUntil(date.date)
         return if (numberOfDays > 0) {
-            TaskStatus.IN_TIME.tag
+            TaskStatus.IN_TIME.color
         } else if (numberOfDays == 0) {
-            TaskStatus.TODAY.tag
+            TaskStatus.TODAY.color
         } else {
-            TaskStatus.OVERDUE.tag
+            TaskStatus.OVERDUE.color
         }
     }
 }
