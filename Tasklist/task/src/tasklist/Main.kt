@@ -8,18 +8,21 @@ const val NUMBERS_PADDING = 3
 const val SIZE_OF_TASKS_FIELD = 44
 const val SIZE_OF_HOUR_FORMAT = 2
 const val SIZE_OF_MINUTE_FORMAT = 2
+const val SIZE_OF_YEAR_FORMAT = 4
+const val SIZE_OF_MONTH_FORMAT = 2
+const val SIZE_OF_DAY_FORMAT = 2
 
-enum class Priority(val tag: String, val color: String) {
-    CRITICAL("C", "\u001B[101m \u001B[0m"),
-    HIGH("H", "\u001B[103m \u001B[0m"),
-    NORMAL("N", "\u001B[102m \u001B[0m"),
-    LOW("L", "\u001B[104m \u001B[0m")
+enum class Priority(val color: String) {
+    CRITICAL("\u001B[101m \u001B[0m"),
+    HIGH("\u001B[103m \u001B[0m"),
+    NORMAL("\u001B[102m \u001B[0m"),
+    LOW("\u001B[104m \u001B[0m")
 }
 
-enum class TaskStatus(val tag: String, val color: String) {
-    IN_TIME("I", "\u001B[102m \u001B[0m"),
-    TODAY("T", "\u001B[103m \u001B[0m"),
-    OVERDUE("O", "\u001B[101m \u001B[0m")
+enum class TaskStatus(val color: String) {
+    IN_TIME("\u001B[102m \u001B[0m"),
+    TODAY("\u001B[103m \u001B[0m"),
+    OVERDUE( "\u001B[101m \u001B[0m")
 }
 
 class TaskList(private val taskList:MutableList<Task> = mutableListOf()) {
@@ -48,9 +51,8 @@ class TaskList(private val taskList:MutableList<Task> = mutableListOf()) {
             taskList.forEach {
                 val number = taskList.indexOf(it) + 1
                 val paddedNumber = "| ${number.toString().padEnd(NUMBERS_PADDING)}"
-                val date = "| ${it.date.date} "
-                val time = "| ${it.date.hour.toString().padStart(SIZE_OF_HOUR_FORMAT,'0')}:${it.date.minute.toString().padStart(
-                    SIZE_OF_MINUTE_FORMAT, '0')} "
+                val date = "| ${it.date.paddedYear}-${it.date.paddedMonth}-${it.date.paddedDay} "
+                val time = "| ${it.time.paddedHours}:${it.time.paddedMinutes} "
                 val priorityTag = "| ${it.priority.color} "
                 val taskStatus = "| ${it.getTaskStatusColor()} "
                 val firstTaskList = it.task.first().chunked(SIZE_OF_TASKS_FIELD)
@@ -69,7 +71,7 @@ class TaskList(private val taskList:MutableList<Task> = mutableListOf()) {
         }
     }
 
-    fun firstFormattedTask(list: List<String>): String {
+    private fun firstFormattedTask(list: List<String>): String {
         if (list.size == 1)  {
             return "|${list.first().padEnd(SIZE_OF_TASKS_FIELD, ' ')}|\n"
         } else {
@@ -83,14 +85,14 @@ class TaskList(private val taskList:MutableList<Task> = mutableListOf()) {
         }
     }
 
-    fun nextFormattedTask(list: List<String>): String {
+    private fun nextFormattedTask(list: List<String>): String {
         val nextLines = StringBuilder()
         list.forEach {
             nextLines.append("|    |            |       |   |   |${it.padEnd(SIZE_OF_TASKS_FIELD, ' ')}|\n")
         }
         return "$nextLines"
     }
-    fun printHeaders() {
+    private fun printHeaders() {
         println("""
             +----+------------+-------+---+---+--------------------------------------------+
             | N  |    Date    | Time  | P | D |                   Task                     |
@@ -138,7 +140,9 @@ class TaskList(private val taskList:MutableList<Task> = mutableListOf()) {
 
 class Task(val task: MutableList<String> = mutableListOf()) {
     var priority = Priority.NORMAL
-    var date = Clock.System.now().toLocalDateTime((TimeZone.of("UTC+2")))
+    lateinit var date:Date
+    lateinit var time:Time
+    //var date = Clock.System.now().toLocalDateTime((TimeZone.of("UTC+2")))
 
     fun addTask(firstInput: String) {
         task.add(firstInput)
@@ -171,7 +175,8 @@ class Task(val task: MutableList<String> = mutableListOf()) {
             try {
                 legitDate = true
                 val (year, month, day) = readln().split("-").map { it.toInt() }
-                date = LocalDateTime(year, month, day, date.hour, date.minute)
+                LocalDate(year, month, day)
+                date = Date(year,month,day)
             } catch (e: Exception) {
                 legitDate = false
                 println("The input date is invalid")
@@ -186,7 +191,8 @@ class Task(val task: MutableList<String> = mutableListOf()) {
             try {
                 legitTime = true
                 val (hours, minutes) = readln().split(":").map { it.padStart(SIZE_OF_HOUR_FORMAT, '0').toInt() }
-                date = LocalDateTime(date.year, date.monthNumber, date.dayOfMonth, hours, minutes)
+                LocalDateTime(date.year, date.month, date.day, hours, minutes)
+                time = Time(hours, minutes)
             } catch (e: Exception) {
                 legitTime = false
                 println("The input time is invalid")
@@ -196,7 +202,7 @@ class Task(val task: MutableList<String> = mutableListOf()) {
 
     fun editTaskProperty() {
         println("Input a field to edit (priority, date, time, task):")
-        val result = when (readln().lowercase()) {
+        when (readln().lowercase()) {
             "priority" -> {
                 addPriority()
                 println("The task is changed")
@@ -220,7 +226,7 @@ class Task(val task: MutableList<String> = mutableListOf()) {
         }
     }
 
-    fun editTask() {
+    private fun editTask() {
         task.clear()
         println("Input a new task (enter a blank line to end):")
         val firstInput = readln().trim()
@@ -238,7 +244,7 @@ class Task(val task: MutableList<String> = mutableListOf()) {
 
     fun getTaskStatusColor(): String {
         val currentDate = Clock.System.now().toLocalDateTime(TimeZone.of("UTC+2")).date
-        val numberOfDays = currentDate.daysUntil(date.date)
+        val numberOfDays = currentDate.daysUntil(LocalDate(date.year, date.month, date.day))
         return if (numberOfDays > 0) {
             TaskStatus.IN_TIME.color
         } else if (numberOfDays == 0) {
@@ -249,7 +255,16 @@ class Task(val task: MutableList<String> = mutableListOf()) {
     }
 }
 
+data class Date(val year:Int, val month:Int, val day:Int) {
+    val paddedYear = this.year.toString().padStart(SIZE_OF_YEAR_FORMAT, '0')
+    val paddedMonth = this.month.toString().padStart(SIZE_OF_MONTH_FORMAT, '0')
+    val paddedDay = this.day.toString().padStart(SIZE_OF_DAY_FORMAT, '0')
+}
 
+data class Time(val hours:Int, val minutes: Int) {
+    val paddedHours = this.hours.toString().padStart(SIZE_OF_HOUR_FORMAT,  '0')
+    val paddedMinutes = this.hours.toString().padStart(SIZE_OF_MINUTE_FORMAT, '0')
+}
 fun main() {
     val taskList = TaskList()
     do {
