@@ -2,6 +2,9 @@ package tasklist
 
 import kotlin.system.exitProcess
 import kotlinx.datetime.*
+import java.io.File
+import com.squareup.moshi.*
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
 const val NUMBER_OF_FIRST_ELEMENT = 1
 const val NUMBERS_PADDING = 3
@@ -25,7 +28,7 @@ enum class TaskStatus(val color: String) {
     OVERDUE( "\u001B[101m \u001B[0m")
 }
 
-class TaskList(private val taskList:MutableList<Task> = mutableListOf()) {
+class TaskList(val taskList:MutableList<Task> = mutableListOf()) {
 
     fun takeInputtedTask() {
         taskList.add(Task())
@@ -142,7 +145,6 @@ class Task(val task: MutableList<String> = mutableListOf()) {
     var priority = Priority.NORMAL
     lateinit var date:Date
     lateinit var time:Time
-    //var date = Clock.System.now().toLocalDateTime((TimeZone.of("UTC+2")))
 
     fun addTask(firstInput: String) {
         task.add(firstInput)
@@ -263,7 +265,7 @@ data class Date(val year:Int, val month:Int, val day:Int) {
 
 data class Time(val hours:Int, val minutes: Int) {
     val paddedHours = this.hours.toString().padStart(SIZE_OF_HOUR_FORMAT,  '0')
-    val paddedMinutes = this.hours.toString().padStart(SIZE_OF_MINUTE_FORMAT, '0')
+    val paddedMinutes = this.minutes.toString().padStart(SIZE_OF_MINUTE_FORMAT, '0')
 }
 fun main() {
     val taskList = TaskList()
@@ -271,6 +273,7 @@ fun main() {
         println("Input an action (add, print, edit, delete, end):")
         val inputtedAction = readln().lowercase().trim()
         actionProcessor(inputtedAction, taskList)
+        saveToJSON(taskList)
     } while (inputtedAction != "end")
 }
 
@@ -283,6 +286,18 @@ fun actionProcessor(action: String, taskList: TaskList) {
         "end" -> exit()
         else -> println("The input action is invalid")
     }
+}
+
+fun saveToJSON(tasklist: TaskList) {
+    val moshi = Moshi.Builder()
+        .add(KotlinJsonAdapterFactory())
+        .build()
+
+    val type = Types.newParameterizedType(MutableList::class.java, Task::class.java)
+    val tasklistAdapter = moshi.adapter<MutableList<Task>>(type)
+    val tasklistAsJSON = tasklistAdapter.toJson(tasklist.taskList)
+    val file = File("tasklist.json")
+    file.writeText(tasklistAsJSON)
 }
 
 fun exit() {
