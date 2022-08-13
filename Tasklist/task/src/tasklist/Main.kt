@@ -268,24 +268,48 @@ data class Time(val hours:Int, val minutes: Int) {
     val paddedMinutes = this.minutes.toString().padStart(SIZE_OF_MINUTE_FORMAT, '0')
 }
 fun main() {
-    val taskList = TaskList()
-    do {
+    val taskList: TaskList = try {
+        val file = File("C:\\Users\\mckoz\\OneDrive\\Pulpit\\indigo\\Tasklist\\tasklist.json")
+        TaskList(readFromJSON(file))
+    } catch (e: Exception) {
+        TaskList()
+    }
+       do {
         println("Input an action (add, print, edit, delete, end):")
         val inputtedAction = readln().lowercase().trim()
         actionProcessor(inputtedAction, taskList)
-        saveToJSON(taskList)
     } while (inputtedAction != "end")
 }
 
 fun actionProcessor(action: String, taskList: TaskList) {
     when (action) {
-        "add" -> taskList.takeInputtedTask()
+        "add" -> {
+            taskList.takeInputtedTask()
+            saveToJSON(taskList)
+        }
         "print" -> taskList.printTasks()
-        "edit" -> taskList.editTasks()
-        "delete" -> taskList.deleteTask()
+        "edit" -> {
+            taskList.editTasks()
+            saveToJSON(taskList)
+        }
+        "delete" -> {
+            taskList.deleteTask()
+            saveToJSON(taskList)
+        }
         "end" -> exit()
         else -> println("The input action is invalid")
     }
+}
+
+fun readFromJSON(file: File): MutableList<Task> {
+    val moshi = Moshi.Builder()
+        .add(KotlinJsonAdapterFactory())
+        .build()
+
+    val type = Types.newParameterizedType(MutableList::class.java, Task::class.java)
+    val tasklistAdapter = moshi.adapter<MutableList<Task>>(type)
+    val tasklistAsKotlin = tasklistAdapter.fromJson(file.readText())
+    return tasklistAsKotlin!!
 }
 
 fun saveToJSON(tasklist: TaskList) {
