@@ -269,7 +269,7 @@ data class Time(val hours:Int, val minutes: Int) {
 }
 fun main() {
     val taskList: TaskList = try {
-        val file = File("C:\\Users\\mckoz\\OneDrive\\Pulpit\\indigo\\Tasklist\\tasklist.json")
+        val file = File("tasklist.json")
         TaskList(readFromJSON(file))
     } catch (e: Exception) {
         TaskList()
