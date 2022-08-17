@@ -1,10 +1,11 @@
 package tasklist
 
 import kotlin.system.exitProcess
-import kotlinx.datetime.*
+import kotlinx.datetime.* // there is no definition of this dependency
 import java.io.File
-import com.squareup.moshi.*
+import com.squareup.moshi.* // there is no definition of this dependency
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import java.time.LocalDate
 
 const val NUMBER_OF_FIRST_ELEMENT = 1
 const val NUMBERS_PADDING = 3
@@ -13,10 +14,10 @@ const val SIZE_OF_HOUR_FORMAT = 2
 const val SIZE_OF_MINUTE_FORMAT = 2
 const val SIZE_OF_YEAR_FORMAT = 4
 const val SIZE_OF_MONTH_FORMAT = 2
-const val SIZE_OF_DAY_FORMAT = 2
+const val SIZE_OF_DAY_FORMAT = 2 // all constants could be moved to separate file
 
 enum class Priority(val color: String) {
-    CRITICAL("\u001B[101m \u001B[0m"),
+    CRITICAL("\u001B[101m \u001B[0m"), // color values are not readable. Maybe try to use hex values.
     HIGH("\u001B[103m \u001B[0m"),
     NORMAL("\u001B[102m \u001B[0m"),
     LOW("\u001B[104m \u001B[0m")
@@ -28,13 +29,13 @@ enum class TaskStatus(val color: String) {
     OVERDUE( "\u001B[101m \u001B[0m")
 }
 
-class TaskList(val taskList:MutableList<Task> = mutableListOf()) {
+class TaskList(val taskList:MutableList<Task> = mutableListOf()) { // do not use mutableLists
 
     fun takeInputtedTask() {
         taskList.add(Task())
         taskList.last().addPriority()
         taskList.last().addDeadlinesDate()
-        taskList.last().addDeadlinesTime()
+        taskList.last().addDeadlinesTime() // Instead of calling all those methods here you should move them to constructor to Task class.
         println("Input a new task (enter a blank line to end):")
         val input = readln().trim()
         if (input == "") {
@@ -42,13 +43,19 @@ class TaskList(val taskList:MutableList<Task> = mutableListOf()) {
             taskList.remove(taskList.last())
         } else {
             taskList.last().addTask(input)
-            taskList.last().task.remove(taskList.last().task.last())
+            val t = taskList.last().task
+            t.remove(t.last())
+        // This line is very complicated. You take last task from task list and then remove last task from this list??
+        // If so you maybe better choice will be to use something like:
+            //            val t = taskList.last().task
+            //            t.remove(t.last())
+
         }
     }
 
     fun printTasks() {
         if (taskList.isEmpty()) {
-            println("No tasks have been input")
+            println("No tasks have been input") // "Task list is empty"
         } else {
             printHeaders()
             taskList.forEach {
@@ -57,7 +64,7 @@ class TaskList(val taskList:MutableList<Task> = mutableListOf()) {
                 val date = "| ${it.date.paddedYear}-${it.date.paddedMonth}-${it.date.paddedDay} "
                 val time = "| ${it.time.paddedHours}:${it.time.paddedMinutes} "
                 val priorityTag = "| ${it.priority.color} "
-                val taskStatus = "| ${it.getTaskStatusColor()} "
+                val taskStatus = "| ${it.getTaskStatusColor()} " // taskStatusColor
                 val firstTaskList = it.task.first().chunked(SIZE_OF_TASKS_FIELD)
                 val firstTask = firstFormattedTask(firstTaskList)
                 print("$paddedNumber$date$time$priorityTag$taskStatus$firstTask")
@@ -95,7 +102,7 @@ class TaskList(val taskList:MutableList<Task> = mutableListOf()) {
         }
         return "$nextLines"
     }
-    private fun printHeaders() {
+    private fun printHeaders() { // nice
         println("""
             +----+------------+-------+---+---+--------------------------------------------+
             | N  |    Date    | Time  | P | D |                   Task                     |
@@ -120,7 +127,7 @@ class TaskList(val taskList:MutableList<Task> = mutableListOf()) {
             } catch (e: Exception) {
                 println("Invalid task number")
             }
-        } while (input !in NUMBER_OF_FIRST_ELEMENT..currentTaskListSize)
+        } while (input !in NUMBER_OF_FIRST_ELEMENT..currentTaskListSize) // This method has strange behaviour. If I provide 1 as an input then loop will be terminated.
     }
 
     fun editTasks() {
@@ -177,7 +184,7 @@ class Task(val task: MutableList<String> = mutableListOf()) {
             try {
                 legitDate = true
                 val (year, month, day) = readln().split("-").map { it.toInt() }
-                LocalDate(year, month, day)
+                LocalDate(year, month, day) // what this line does? Is this some kind of validation?
                 date = Date(year,month,day)
             } catch (e: Exception) {
                 legitDate = false
@@ -186,6 +193,7 @@ class Task(val task: MutableList<String> = mutableListOf()) {
         } while (!legitDate)
     }
 
+    // those both methods are very similar. Try to merge them.
     fun addDeadlinesTime() {
         var legitTime: Boolean
         do {
@@ -193,7 +201,7 @@ class Task(val task: MutableList<String> = mutableListOf()) {
             try {
                 legitTime = true
                 val (hours, minutes) = readln().split(":").map { it.padStart(SIZE_OF_HOUR_FORMAT, '0').toInt() }
-                LocalDateTime(date.year, date.month, date.day, hours, minutes)
+                LocalDateTime(date.year, date.month, date.day, hours, minutes) // what this line does? Is this some kind of validation?
                 time = Time(hours, minutes)
             } catch (e: Exception) {
                 legitTime = false
@@ -257,6 +265,7 @@ class Task(val task: MutableList<String> = mutableListOf()) {
     }
 }
 
+// I think you can omit "this" word in both data classes placed below.
 data class Date(val year:Int, val month:Int, val day:Int) {
     val paddedYear = this.year.toString().padStart(SIZE_OF_YEAR_FORMAT, '0')
     val paddedMonth = this.month.toString().padStart(SIZE_OF_MONTH_FORMAT, '0')
@@ -264,9 +273,11 @@ data class Date(val year:Int, val month:Int, val day:Int) {
 }
 
 data class Time(val hours:Int, val minutes: Int) {
-    val paddedHours = this.hours.toString().padStart(SIZE_OF_HOUR_FORMAT,  '0')
-    val paddedMinutes = this.minutes.toString().padStart(SIZE_OF_MINUTE_FORMAT, '0')
+    val paddedHours = hours.toString().padStart(SIZE_OF_HOUR_FORMAT,  '0')
+    val paddedMinutes = minutes.toString().padStart(SIZE_OF_MINUTE_FORMAT, '0')
 }
+
+//avoid putting the whole code in Main.kt. Main method should be only used to start your code.
 fun main() {
     val taskList: TaskList = try {
         val file = File("tasklist.json")
@@ -300,7 +311,7 @@ fun actionProcessor(action: String, taskList: TaskList) {
         else -> println("The input action is invalid")
     }
 }
-
+// JSON methods should be moved to separate file
 fun readFromJSON(file: File): MutableList<Task> {
     val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
@@ -328,3 +339,9 @@ fun exit() {
     println("Tasklist exiting!")
     exitProcess(0)
 }
+
+
+// General comment is that you use too much try/catch exceptions.
+// For example in line 127 instead of throwing exception you could check if provided number is in range of all tasks set.
+// If no then you can provide text to user that he provided number outside the range. Also, your try/catch try to catch all Exceptions.
+// It is not the best solution usually (but it does not mean it is not used in production code :P)
